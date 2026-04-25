@@ -107,7 +107,6 @@ dagster dev
 ## 🔗 Related
 
 - [Smart Farming – Irrigation Prediction](https://github.com/krishas-7/smart-farming-irrigation-prediction)
-- [AI Cyber Range](https://github.com/krishas-7/ai-cyber-range)
 
 ---
 
