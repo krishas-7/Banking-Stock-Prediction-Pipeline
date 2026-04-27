@@ -1,75 +1,97 @@
-# 🏦 Banking Stock Prediction Pipeline
+# 🏦 Banking Stock Prediction Pipeline — Dagster + ML
 
-> End-to-end ML pipeline for HDFC Bank stock trend prediction — orchestrated with Dagster for **60% faster execution**.
+> End-to-end ML pipeline for HDFC Bank stock trend prediction, orchestrated with Dagster for **86% faster selective re-execution**.
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Dagster](https://img.shields.io/badge/Dagster-5E4FF6?style=flat-square&logo=dagster&logoColor=white)
-![ML](https://img.shields.io/badge/Machine_Learning-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)
+![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)
+![yFinance](https://img.shields.io/badge/yFinance-0052CC?style=flat-square)
 
 ---
 
 ## 📌 Project Overview
 
-This project demonstrates how integrating **DevOps principles (pipeline orchestration)** into a data science workflow dramatically improves execution efficiency. The pipeline predicts HDFC Bank stock trends using historical data and multiple ML models.
+This project demonstrates how integrating **DevOps pipeline orchestration (Dagster)** into a data science workflow dramatically improves execution efficiency. The pipeline predicts HDFC Bank stock price direction using historical OHLCV data and 4 ML models.
 
-**Key Result:** Execution time reduced from **~5 minutes → ~2 minutes** (60% improvement) by replacing manual Jupyter notebook runs with Dagster's dependency-aware execution.
-
----
-
-## 🔍 Problem Statement
-
-Traditional ML workflows in Jupyter notebooks require re-running the **entire pipeline** whenever data or parameters change — leading to redundancy and wasted compute time. This project solves that with modular, orchestrated pipeline stages.
+**Key Result:** Selective re-execution reduced runtime from **~8 seconds → ~0.56 seconds** (86% faster) by skipping unchanged pipeline stages.
 
 ---
 
-## ⚙️ Pipeline Stages
+## 🚀 Dagster Pipeline — Live Run
+
+![Dagster Run Success](dagster_run_success.png)
+
+> All 7 ops executed successfully — `fetch_data → eda → feature_engineering → decision_tree / knn / logistic_regression / random_forest`
+
+**Run details:**
+- ✅ Success
+- ⏱️ Total time: **2m 16s** (full run including data download)
+- 📅 Apr 27, 2026
+
+---
+
+## ⚙️ Pipeline Architecture
 
 ```
-Data Collection → EDA → Feature Engineering → Data Splitting → Model Training → Evaluation
+fetch_data
+    ↓
+   eda
+    ↓
+feature_engineering
+    ↓
+┌───────────┬──────────────────────┬───────────────┐
+decision_tree   knn   logistic_regression   random_forest
 ```
 
-Each stage is an independent Dagster **op** — only affected stages re-run on changes.
+Each stage is an independent Dagster **@op** — only affected stages re-run when changes occur.
 
 ---
 
-## 🤖 Models Used
+## 📊 Dataset
 
-| Model | Type |
+| Property | Value |
 |---|---|
-| Decision Tree | Classification |
-| Random Forest | Ensemble |
-| Logistic Regression | Classification |
-| K-Nearest Neighbors | Instance-based |
+| Stock | HDFC Bank (HDFCBANK.NS) |
+| Period | 2020-01-01 to 2024-01-01 |
+| Rows | 992 trading days |
+| Features | Open, High, Low, Close, Volume (shifted by 1 day) |
+| Target | Price direction next day (Up=1 / Down=0) |
 
 ---
 
-## 📊 Evaluation Metrics
+## 🤖 Model Results
 
-- Accuracy
-- Precision & Recall
-- F1-Score
-- Confusion Matrix
+| Model | Accuracy |
+|---|---|
+| **Decision Tree** | **0.5377** ✅ Best |
+| Logistic Regression | 0.5327 |
+| KNN | 0.4824 |
+| Random Forest | 0.4975 |
+
+> **Note:** ~50% accuracy is expected for stock direction prediction using only OHLCV features — even institutional quants struggle to beat 55% consistently. The focus of this project is **pipeline orchestration**, not model accuracy.
 
 ---
 
-## 🗂️ Project Structure
+## ⏱️ Timing Comparison
+
+| Execution Mode | Time |
+|---|---|
+| Full Pipeline (all ops) | ~8 seconds |
+| Selective Rerun (ML ops only) | ~0.56 seconds |
+| **Improvement** | **~86% faster** |
+
+Dagster's dependency-aware execution skips `fetch_data` and `eda` when only model parameters change — eliminating redundant computation.
+
+---
+
+## 🗂️ Repository Structure
 
 ```
 banking-stock-prediction-pipeline/
 │
-├── data/
-│   └── hdfc_stock_data.csv        # Historical stock data
-│
-├── pipeline/
-│   ├── data_collection.py         # Dagster op: fetch data
-│   ├── eda.py                     # Dagster op: exploratory analysis
-│   ├── feature_engineering.py     # Dagster op: create features
-│   ├── model_training.py          # Dagster op: train models
-│   └── evaluation.py              # Dagster op: evaluate & compare
-│
-├── notebooks/
-│   └── exploration.ipynb          # Initial Jupyter exploration
-│
+├── pipeline_dagster.py              # Dagster pipeline (run locally)
+├── banking_dagster_final.ipynb      # Full notebook with outputs (Colab)
+├── dagster_run_success.png          # Dagster UI — all ops green
 ├── requirements.txt
 └── README.md
 ```
@@ -78,35 +100,35 @@ banking-stock-prediction-pipeline/
 
 ## 🚀 How to Run
 
+### Option A — Dagster UI (Local)
 ```bash
-# Clone the repo
-git clone https://github.com/krishas-7/banking-stock-prediction-pipeline.git
-cd banking-stock-prediction-pipeline
-
 # Install dependencies
-pip install -r requirements.txt
+pip install dagster dagster-webserver yfinance scikit-learn seaborn
 
-# Launch Dagster UI
-dagster dev
+# Launch Dagster
+python -m dagster dev -f pipeline_dagster.py
 
-# Open http://localhost:3000 and trigger the pipeline
+# Open browser
+# http://localhost:3000 → Jobs → stock_ml_pipeline → Launch Run
 ```
 
----
-
-## 📈 Results
-
-| Execution Mode | Time |
-|---|---|
-| Traditional (full notebook run) | ~5 minutes |
-| Dagster (selective re-execution) | ~2 minutes |
-| **Improvement** | **60% faster** |
+### Option B — Google Colab
+Open `banking_dagster_final.ipynb` in Google Colab and run all cells.
 
 ---
 
-## 🔗 Related
+## 📦 Requirements
 
-- [Smart Farming – Irrigation Prediction](https://github.com/krishas-7/smart-farming-irrigation-prediction)
+```
+dagster
+dagster-webserver
+yfinance
+pandas
+numpy
+scikit-learn
+seaborn
+matplotlib
+```
 
 ---
 
